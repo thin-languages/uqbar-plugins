@@ -46,11 +46,11 @@ This method will be called by the framework any time a *T consumer* needs an ins
 
 Most non-primitive types may be used as produceable resources, yet some return types denote a special meaning:
 
-	- `T`: The method can always provide a single instance of a `T` resource each time it's invoked.
-	- `Option[T]`: The method may or may not be able to provide a `T`.
-	- `List[T]`: The method may or may not be able to provide many `T` resources. 
-	- `Future[T]`: The method can always provide an asynchronous process that, when resolved, may result in a single `T`.
-	- `Future[List[T]]`: The method can always provide an asynchronous process that, when resolved, may result in many `T`.
+- `T`: The method can always provide a single instance of a `T` resource each time it's invoked.
+- `Option[T]`: The method may or may not be able to provide a `T`.
+- `List[T]`: The method may or may not be able to provide many `T` resources. 
+- `Future[T]`: The method can always provide an asynchronous process that, when resolved, may result in a single `T`.
+- `Future[List[T]]`: The method can always provide an asynchronous process that, when resolved, may result in many `T`.
 
 ##### Consumers
 
@@ -62,13 +62,14 @@ A single method can consume many resource types at once by declaring multiple pa
 execute only when all the required resources are available and any time one of those resources change. 
 
 Most non-primitive types may be used as consumable resources, yet some types denote a special meaning:
-	- `T`: The method requires an instance of a `T` resource to perform. If more than one instance is available, the 
-	method will be executed once for each instance.
-	- `Option[T]`: The method uses the resource `T`, but does not need it to perform. If the method is invoked with no
-	resource, it may be invoked again once an instance is available at a later time.
-	- `List[T]`: The method requires all available instances of `T` at once and may perform even if there are none. The
-	method will be invoked at any time a new instance of `T` is made available or removed with the whole list obtained
-	from all the producers. Consumers should not assume any order for the resource list. 
+
+- `T`: The method requires an instance of a `T` resource to perform. If more than one instance is available, the 
+method will be executed once for each instance.
+- `Option[T]`: The method uses the resource `T`, but does not need it to perform. If the method is invoked with no
+resource, it may be invoked again once an instance is available at a later time.
+- `List[T]`: The method requires all available instances of `T` at once and may perform even if there are none. The
+method will be invoked at any time a new instance of `T` is made available or removed with the whole list obtained
+from all the producers. Consumers should not assume any order for the resource list. 
 	
 ##### Producer-Consumers
 
@@ -86,17 +87,17 @@ consumers should decide what resource is best to perform.
 
 **TODO**
 
-	- Manage exceptions.
-	- Plugins auto-download and compile from remote origins (such as github)
-	- Dynamic install, uninstall and hot swap for plugins.
-	- Manage cyclic requirements.
-	- Support implicit arguments.
-	- (?) handle things asynchronously with actors.
-	- (?) Life cycle control
-	- (?) Support other funky special types:
-		- Streams as return
-		- Logging
-		- Single[T], Latest[T] & Earliest[T] as parameters
+- Manage exceptions.
+- Plugins auto-download and compile from remote origins (such as github)
+- Dynamic install, uninstall and hot swap for plugins.
+- Manage cyclic requirements.
+- Support implicit arguments.
+- (?) handle things asynchronously with actors.
+- (?) Life cycle control
+- (?) Support other funky special types:
+	- Streams as return
+	- Logging
+	- Single[T], Latest[T] & Earliest[T] as parameters
 		- Resource[T] and Plugin[P] as parameter for reflective queries such as `isBeingProvided` and `providedResources`
 
 
