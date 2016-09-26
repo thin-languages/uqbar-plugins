@@ -1,6 +1,6 @@
-name := "<<project_name>>"
+name := "uqbar-plugins"
 
-description := ""
+description := "A Scala based framework to create plugin-based easy to extend applications."
 
 scalaVersion := "2.11.8"
 
