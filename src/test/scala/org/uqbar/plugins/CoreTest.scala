@@ -3,7 +3,6 @@ package org.uqbar.plugins
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.BeforeAndAfterAll
-import scala.language.reflectiveCalls
 import uqbarPlugins._
 
 class CoreTest extends FreeSpec with Matchers with BeforeAndAfterAll {
