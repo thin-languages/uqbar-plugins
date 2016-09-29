@@ -2,53 +2,46 @@ package org.uqbar.plugins
 
 import scala.reflect.runtime.universe._
 
-trait Resource
+object uqbarPlugins {
 
-trait PluggableApplication {
   val mirror = scala.reflect.runtime.universe.runtimeMirror(getClass.getClassLoader)
   
-  def loadPlugin(plugin: Plugin): Unit =
-    for{producer <- plugin.producers} yield consumers.foreach(consumer => consumer(producer(plugin), this))
+  trait Resource
   
-  val consumers = ConsumerFinder findIn getClass
-}
-
-trait Plugin {
-  val producers = ProducerFinder findIn getClass
+  trait PluggableApplication extends ConsumerProvider {
+    def loadPlugin(plugin: Plugin): Unit =
+      for{producer <- plugin.producers
+          consumer <- consumers} { consumer consume producer.product }
+  }
   
-  val consumers = ConsumerFinder findIn getClass
-}
-
-trait ResourceHandler
-
-class Producer[T <: Resource](method: MethodSymbol) extends ResourceHandler {
-  val mirror = scala.reflect.runtime.universe.runtimeMirror(getClass.getClassLoader)
+  trait Plugin extends ConsumerProvider with ProducerProvider 
   
-  def apply(caller: Any) = mirror.reflect(caller).reflectMethod(method).apply().asInstanceOf[T]
-}
-
-class Consumer[T <: Resource](method: MethodSymbol) extends ResourceHandler {
-  val mirror = scala.reflect.runtime.universe.runtimeMirror(getClass.getClassLoader)
+  trait ConsumerProvider {
+    val consumers = for{method <- getClass.methods if method.paramLists.exists(_.exists(_.info <:< typeOf[Resource]))}
+    yield Consumer(this, method) 
+  }
   
-  def apply(parameter: T, caller: Any) = mirror.reflect(caller).reflectMethod(method).apply(parameter)
-}
-
-object ConsumerFinder {
-  def mirrorFor(aClass: Class[_]) = scala.reflect.runtime.universe.runtimeMirror(aClass.getClassLoader)
+  trait ProducerProvider {
+    val producers = for{method <- getClass.methods if method.returnType <:< typeOf[Resource]}
+    yield Producer(this, method)
+  }
   
-  def findIn(aClass: Class[_]) =
-    for{member <- mirrorFor(aClass).classSymbol(aClass).toType.members if member.isMethod
-        method = member.asMethod if method.paramLists.exists(_.exists(_.info <:< typeOf[Resource]))}
-  yield new Consumer(method)
-        
-}
-
-object ProducerFinder {
-  def mirrorFor(aClass: Class[_]) = scala.reflect.runtime.universe.runtimeMirror(aClass.getClassLoader)
+  trait ResourceHandler {
+    val method: MethodSymbol
+    val methodOwner: Any
+    def reflectedMethod = mirror.reflect(methodOwner).reflectMethod(method)
+  }
   
-  def findIn(aClass: Class[_]) =
-    for{member <- mirrorFor(aClass).classSymbol(aClass).toType.members if member.isMethod
-        method = member.asMethod if method.returnType <:< typeOf[Resource]}
-  yield new Producer(method)
-        
+  case class Producer[T <: Resource](methodOwner: Any, method: MethodSymbol) extends ResourceHandler {    
+    def product = reflectedMethod.apply().asInstanceOf[T]
+  }
+  
+  case class Consumer[T <: Resource](methodOwner: Any, method: MethodSymbol) extends ResourceHandler {
+    def consume(parameter: T) = reflectedMethod.apply(parameter)
+  }
+  
+  implicit class ReflectiveClass(aClass: Class[_]) {
+    def classSymbol = mirror.classSymbol(aClass)
+    def methods = classSymbol.toType.members.filter(_.isMethod).map(_.asMethod)
+  }
 }
