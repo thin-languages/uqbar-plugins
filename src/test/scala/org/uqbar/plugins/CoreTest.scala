@@ -3,11 +3,12 @@ package org.uqbar.plugins
 import org.scalatest.FreeSpec
 import org.scalatest.Matchers
 import org.scalatest.BeforeAndAfterAll
+import scala.language.reflectiveCalls
 
 class CoreTest extends FreeSpec with Matchers with BeforeAndAfterAll {
   "PluggableAppication" - {
     "Load a plugin" in {
-      case class Coffee(name: String)
+      case class Coffee(name: String) extends Resource
       object blackCoffeeProvider extends Plugin {
         def blackCoffee: Coffee = Coffee("Black Coffee")
       }
@@ -19,11 +20,12 @@ class CoreTest extends FreeSpec with Matchers with BeforeAndAfterAll {
           this.coffee = coffee
         }
       }
-      app.coffee should be ("Coffee")
+      
+      app.coffee should be (Coffee("Coffee"))
       
       app loadPlugin blackCoffeeProvider
       //TODO app.makeCoffee should be call one time
-      app.coffee should be ("Black Coffee")
+      app.coffee should be (Coffee("Black Coffee"))
     }
   }
 }
