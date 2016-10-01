@@ -1,13 +1,12 @@
 package org.uqbar.plugins
 
 import scala.reflect.runtime.universe._
-import scala.reflect.runtime.universe
 
 object uqbarPlugins {
 
-  val mirror = universe.runtimeMirror(getClass.getClassLoader)
+  val mirror = runtimeMirror(getClass.getClassLoader)
 
-  trait PluggableApplication extends ConsumerProvider {
+  class PluggableApplication extends ConsumerProvider {
 
     var plugins: List[Plugin] = Nil
 
@@ -24,20 +23,26 @@ object uqbarPlugins {
 
   trait Plugin extends ConsumerProvider with ProducerProvider
 
-  trait ProducerProvider {
-    def producers = getClass.publicMethods.collect { case IsProducer(method) => Producer(this, method) }
+  trait ResourceHandlerProvider {
+    val isResourceHandler: MethodSymbol => Boolean = method => method.isPublic && !method.isConstructor
+    
+    def methods = mirror.reflect(this).symbol.toType.decls.collect { case method: MethodSymbol => method }
   }
 
-  trait ConsumerProvider {
-    def consumers = getClass.publicMethods.collect { case IsConsumer(method) => Consumer(this, method) }
+  trait ProducerProvider extends ResourceHandlerProvider {
+    def isProducer(method: MethodSymbol) = isResourceHandler(method) && returnsSomething(method)
+
+    def returnsSomething(method: MethodSymbol) = !(method.returnType =:= typeOf[Unit])
+
+    def producers = methods.collect { case method if isProducer(method) => Producer(this, method) }
   }
 
-  object IsProducer {
-    def unapply(method: MethodSymbol) = Option(method) filterNot (_.returnType <:< typeOf[Unit])
-  }
+  trait ConsumerProvider extends ResourceHandlerProvider {
+    def isConsumer(method: MethodSymbol) = isResourceHandler(method) && hasParameters(method)
 
-  object IsConsumer {
-    def unapply(method: MethodSymbol) = Option(method) filterNot (_.paramLists.flatten.isEmpty)
+    def hasParameters(method: MethodSymbol) = method.paramLists.headOption.fold(false)(_.nonEmpty)
+
+    def consumers = methods.collect { case method if isConsumer(method) => Consumer(this, method) }
   }
 
   trait ResourceHandler {
@@ -56,10 +61,5 @@ object uqbarPlugins {
     def getTypes = method.paramLists.flatten.map(_.info)
     def needsType(aType: Type) = getTypes contains aType
     def canBeFulfilledBy(producers: Iterable[Producer]) = getTypes forall (tpe => producers exists (tpe <:< _.getType))
-  }
-
-  implicit class ReflectiveClass(aClass: Class[_]) {
-    def classSymbol = mirror classSymbol aClass
-    def publicMethods = classSymbol.toType.decls.filter(_.isMethod).filter(_.isPublic).map(_.asMethod)
   }
 }
