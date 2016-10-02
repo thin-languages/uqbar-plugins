@@ -35,6 +35,8 @@ object uqbarPlugins {
     def returnsSomething(method: MethodSymbol) = !(method.returnType =:= typeOf[Unit])
 
     def producers = methods.collect { case method if isProducer(method) => Producer(this, method) }
+    
+    def producersOf(tpe: Type) = producers filter (_.getType == tpe)
   }
 
   trait ConsumerProvider extends ResourceHandlerProvider {
@@ -43,6 +45,8 @@ object uqbarPlugins {
     def hasParameters(method: MethodSymbol) = method.paramLists.headOption.fold(false)(_.nonEmpty)
 
     def consumers = methods.collect { case method if isConsumer(method) => Consumer(this, method) }
+    
+    def consumersOf(tpe: Type) = consumers filter (_ needsType tpe)
   }
 
   trait ResourceHandler {
